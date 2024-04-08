@@ -1,0 +1,1 @@
+export const firstUpperCase = (string) => string.split('')[0].toUpperCase()+string.slice(1);
