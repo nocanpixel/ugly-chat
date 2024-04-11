@@ -6,7 +6,7 @@ import routes from "./routes/api.js";
 import cors from "cors";
 import { handle404 } from './middlewares/404.js';
 import chalk from 'chalk';
-
+import './associations.js'
 const port = process.env.PORT || 3000;
 const corsOptions = {
     origin: "http://localhost:5173",
@@ -17,12 +17,13 @@ const corsOptions = {
 app.use(json())
 app.use(cookieParser())
 app.use(cors(corsOptions))
+
 //Routes
 app.use("/api", routes);
 
 app.use(handle404);
 
-db.sync().then(()=>{
+db.sync({force:false}).then(()=>{
     console.log(chalk.bgMagenta(` --Database synced-- `))
 })
 

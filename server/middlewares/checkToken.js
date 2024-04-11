@@ -11,7 +11,7 @@ export const checkToken = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
-        return res.status(400).json({
+        return res.status(498).json({
             message: "Invalid token"
         });
     }
