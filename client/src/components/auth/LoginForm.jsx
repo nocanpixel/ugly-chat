@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firstUpperCase } from '../../utils/shortCuts';
 import authApi from '../../api/auth';
-import { LayoutContainer, LayoutSection, LoginSection } from '../../styles';
+import { AuthSection, LayoutContainer, LayoutSection } from '../../styles';
 
 
 const data = [
@@ -50,7 +50,7 @@ export default function LoginForm() {
   return (
     <LayoutSection>
       <LayoutContainer>
-        <LoginSection>
+        <AuthSection>
           <header>
             <h1 className='text-4xl font-bold'>{'Login'}</h1>
           </header>
@@ -68,7 +68,7 @@ export default function LoginForm() {
               <span className='text-neutral-400 text-sm'>{"If you don't have an account"} <span onClick={() => navigate('/signup')} className='text-indigo-600 cursor-pointer'>{"SignUp"}</span></span>
             </div>
           </form>
-        </LoginSection>
+        </AuthSection>
       </LayoutContainer>
     </LayoutSection>
   )

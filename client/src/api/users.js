@@ -6,7 +6,7 @@ const COOKIE_NAME = import.meta.env.VITE_LOGGED_COOKIE;
 
 const usersApi = {
     getAll: () => {
-        return axiosInstance.get('/user/getAll', { withCredentials: true });
+        return axiosInstance.get('/user/get-all', { withCredentials: true });
     },
     logout: () => {
         return Promise.all([

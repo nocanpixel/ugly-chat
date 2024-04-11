@@ -36,7 +36,7 @@ export const LayoutBody = styled.div`
     padding: 0px 12px 0px 12px;
 `
 
-export const LoginSection = styled.section`
+export const AuthSection = styled.section`
     display: flex;
     justify-content: center;
     flex-direction: column;
