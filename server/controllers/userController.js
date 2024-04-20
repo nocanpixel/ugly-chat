@@ -2,234 +2,321 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Users from "../models/Users.js";
 import memoryCache from "memory-cache";
-import FriendRequests from "../models/FriendRequests.js";
+import Friendship from "../models/Friendship.js";
 import { Sequelize } from "sequelize";
+import UserFriendship from "../models/UserFriendship.js";
 
-
-const signupLimit = 1;
+const signupLimit = 100;
 const signupWindow = 60 * 60 * 1000;
 
-const enumsFriends = {
-    accepted:"accepted",
-    pending:"pending",
-    rejected:"rejected"
+export const enumsFriends = {
+  accepted: "accepted",
+  pending: "pending",
+  rejected: "rejected",
 };
 
 function hasExceededLimit(ip) {
-    const count = memoryCache.get(ip) || 0;
-    return count >= signupLimit;
+  const count = memoryCache.get(ip) || 0;
+  return count >= signupLimit;
 }
 
-const createSession = async (email, user, res) => {
-    try {
-        const token = jwt.sign({ email: email, name: user.username }, process.env.JWT_SECRET, {
-            expiresIn: "1h",
-            algorithm: 'HS256'
-        });
+const createSession = async (id, email, user,req, res, io) => {
+  try {
+    const token = jwt.sign(
+      { id: id, email: email, name: user.username },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+        algorithm: "HS256",
+      }
+    );
 
-        res.cookie("auth", token, {
-            httpOnly: true,
-            sameSite: "lax",
-            maxAge: 1000 * 60 * 60
-        });
+    res.cookie("auth", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60,
+    });
 
-        res.send({ message: "User logged in" });
-    } catch (error) {
-        console.error('Error creating session:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+    req.session.user = {id:id}
+
+    res.status(200).json('Logged');
+  } catch (error) {
+    console.error("Error creating session:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const register = async (req, res) => {
+  try {
     const ip = req.ip;
     if (hasExceededLimit(ip)) {
-        return res.status(429).send('Too many signups from this IP address.');
+      return res.status(429).send("Too many signups from this IP address.");
     }
     memoryCache.put(ip, (memoryCache.get(ip) || 0) + 1, signupWindow);
-    try {
-        const { username, email, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
+    const { username, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        const insertUser = await Users.create({
-            username,
-            email,
-            password: hashedPassword,
-            is_online: true,
-        });
+    const insertUser = await Users.create({
+      username,
+      email,
+      password: hashedPassword,
+      is_online: true,
+    });
 
+    if (!insertUser) throw new Error("Something went wrong");
+    createSession(insertUser.dataValues.id, email, username,req, res);
+  } catch (error) {
+    res.status(500).json({
+      error: "This account already exists",
+    });
+  }
+};
 
-        if (!insertUser) throw new Error('Something went wrong');
-
-        createSession(email, username, res);
-
-    } catch (error) {
-        res.status(500).json({
-            error: "This account already exists"
-        })
-    }
-}
-
-const login = async (req, res) => {
+const login = (io) => async (req, res) => {
+  try {
     const { email, password } = req.body;
     const userAuth = req.cookies.auth;
-    if (userAuth) return res.status(200).send('Already logged In')
-    try {
-        const credentialsError = new Error("Email or password is incorrect")
-        const user = await Users.findOne({ where: { email } });
-        if (!user) throw credentialsError;
+  
+    
+    if (userAuth) return res.status(200).send("Already logged In");
+    const credentialsError = new Error("Email or password is incorrect");
+    const user = await Users.findOne({ where: { email } });
+    if (!user) throw credentialsError;
+    
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) throw credentialsError;
+    
+    createSession(user.dataValues.id, email, user,req, res, io);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+};
 
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) throw credentialsError;
-
-        createSession(email, user, res);
-
-    } catch (error) {
-        res.status(400).json({
-            error: error.message
-        })
+const logout = (io) => async (req, res) => {
+  try {
+    const userAuth = req.cookies.auth;
+    if (userAuth) {
+      res.clearCookie("auth");
+      req.session.destroy(async () => {
+        res.clearCookie("sid");
+        res.status(204).end();
+      });
+    } else {
+      throw new Error("No session found");
     }
-}
-
-const logout = async (req, res) => {
-    try {
-        const userAuth = req.cookies.auth;
-        if (userAuth) {
-            res.clearCookie("auth");
-            res.status(200).json({ message: "Logout successfully" });
-        } else {
-            throw new Error('No session found')
-        }
-    } catch (error) {
-        res.status(500).json({
-            error: error.message
-        });
-    }
-}
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
 
 const getUserAuthentication = async (req, res) => {
-    try {
-        const userAuth = req.user;
-        if (userAuth) {
-            res.status(201).json({
-                status: res.statusCode,
-                res: {
-                    name: userAuth.email,
-                    email: userAuth.name,
-                    exp: userAuth.exp,
-                }
-            })
-        }
-    } catch (error) {
-        res.status(500).json({
-            error: error.message
-        })
+  try {
+    const userAuth = req.user;
+
+    if (userAuth) {
+      res.status(201).json({
+        status: res.statusCode,
+        res: {
+          id:userAuth.id,
+          name: userAuth.email,
+          email: userAuth.name,
+          exp: userAuth.exp,
+        },
+      });
     }
-}
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
 
 const sendFriendRequest = async (req, res) => {
-    const { from_user, to_user } = req.body;
+  try {
+    const { user_2 } = req.body;
+    const { id } = req.user;
+    if(user_2===id)return res.status(500).json({message:`Can't send a friend request to yourself!`})
+    const existingRequest = await Friendship.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          { user_1: id, user_2: user_2 },
+          { user_1: user_2, user_2: id },
+        ],
+      },
+    });
 
-    try {
-        const existingRequest = await FriendRequests.findOne({
-            where: {
-                [Sequelize.Op.or]: [
-                    { from_user: from_user, to_user: to_user },
-                    { from_user: to_user, to_user: from_user },
-                ],
-            },
-        });
+    if (existingRequest)
+      return res.status(400).json({ error: "Duplicate request" });
 
-        if (existingRequest) return res.status(400).json({ error: "Duplicate request" })
+    const sendRequest = await Friendship.create({
+      user_1: id,
+      user_2: user_2,
+    });
 
-        const sendRequest = await FriendRequests.create({
-            from_user: from_user,
-            to_user: to_user,
-        })
+    if (!sendRequest) throw new Error("Something went wrong");
 
-        if (!sendRequest) throw new Error('Something went wrong');
+    await UserFriendship.bulkCreate(
+      [
+        { friendship_id: sendRequest.dataValues.id, user_id: id },
+        { friendship_id: sendRequest.dataValues.id, user_id: user_2 },
+      ],
+      { returning: true }
+    );
 
-        return res.status(201).send('Created')
-
-    } catch (error) {
-        return res.status(500).json({
-            error: error.message
-        })
-    }
-}
+    return res.status(201).send(sendRequest);
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
+};
 
 const getFriendRequests = async (req, res) => {
-    const { userId, type } = req.params;
   
-    try {
-      const whereClause = {
-        status: 'pending',
-      };
+  try {
+    const { id } = req.user;
+    const myRequests = await UserFriendship.findAll({
+      attributes: ["friendship_id"],
+      where: {
+        user_id: id,
+      },
+      raw: true,
+    });
 
-      whereClause[type === 'incoming' ? 'to_user' : 'from_user'] = userId;
-  
-      const attributes = type === 'incoming' ? ['id', 'from_user', 'status'] : ['id', 'to_user', 'status'];
-  
-      const findRequests = await FriendRequests.findAll({
-        where: whereClause,
-        attributes,
-      });
-  
-      return res.status(200).json(findRequests);
-    } catch (error) {
-      return res.status(500).json({
-        error: error.message,
-      });
-    }
-  };
+    const myFriendshipId = myRequests.map((request) => request.friendship_id);
 
-  const updateFriendRequest = async (req,res) => {
-    const { request_id, response } = req.body;
+    const onPending = await UserFriendship.findAll({
+      where: {
+        friendship_id: myFriendshipId,
+        user_id: { [Sequelize.Op.ne]: id },
+      },
+      attributes: [],
+      include: [
+        {
+          model: Friendship,
+          where: {
+            [Sequelize.Op.and]: [
+              { user_1: { [Sequelize.Op.ne]: id } },
+              { status: enumsFriends.pending },
+            ],
+          },
+          attributes: ["id"],
+        },
+        {
+          model: Users,
+          attributes: ["username"],
+        },
+      ],
+    });
 
-    try{
-        const findRequest = await FriendRequests.findOne({
-            where: {id:request_id,status:enumsFriends.pending}
-        })
+    const format = onPending.map((pending) => ({
+      user: pending.dataValues.User.dataValues.username,
+      friendship_id: pending.dataValues.Friendship.dataValues.id,
+    }));
 
-        if(!findRequest) return res.status(201).send(`Friend request foundn't`);
-
-        await FriendRequests.update({status:response},{
-            where: {id:request_id}
-        })
-
-        return res.status(201).send(`Friend request: ${response}`);
-    }catch(error){
-        return res.status(500).json({
-            error: error.message
-        })
-    }
-
+    return res.status(200).json(format);
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
   }
+};
 
-// const getAll = async (req, res) => {
-//     try {
-//         const users = await Users.findAll({
-//             attributes: ['username', 'email', 'password']
-//         });
-//         if (!res.headersSent) {
-//             res.status(201).json({
-//                 status: res.statusCode,
-//                 users
-//             })
-//         }
-//     } catch (error) {
-//         res.status(500).json({
-//             error: error.message
-//         })
-//     }
+const updateFriendRequest = async (req, res) => {
+  
+  try {
+    const { request_id, response } = req.body;
+    const findRequest = await Friendship.findOne({
+      where: { id: request_id, status: enumsFriends.pending },
+    });
 
-// }
+    const query = await UserFriendship.findAll({
+      where: { friendship_id: request_id },
+    });
+
+    if (!findRequest) return res.status(201).send(`Friend request foundn't`);
+
+    const updateFriendship = await Friendship.update(
+      { status: response },
+      {
+        where: { id: request_id },
+      }
+    );
+
+    if (!updateFriendship) return res.status(500).send(`Something went wrong`);
+
+    if (response === enumsFriends.rejected) {
+      await Friendship.destroy({
+        where: { id: request_id },
+      });
+      await UserFriendship.destroy({
+        where: { friendship_id: request_id },
+      });
+    }
+
+    return res.status(201).send(`Friend request: ${response}`);
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+const getFriends = async (req, res) => {
+  
+  try {
+    const { id } = req.user;
+    const myRequests = await UserFriendship.findAll({
+      attributes: ["friendship_id"],
+      where: {
+        user_id: id,
+      },
+      raw: true,
+    });
+
+    const myFriendshipId = myRequests.map((request) => request.friendship_id);
+
+    const friends = await UserFriendship.findAll({
+      where: {
+        friendship_id: { [Sequelize.Op.in]: myFriendshipId },
+        user_id: { [Sequelize.Op.ne]: id },
+      },
+      attributes: [],
+      include: [
+        {
+          model: Friendship,
+          where: { status: enumsFriends.accepted },
+        },
+        {
+          model: Users,
+          attributes: ["id", "username"],
+        },
+      ],
+    });
+
+    const response = friends.map((ele) => ele.User.dataValues);
+
+    return res.status(201).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+
 
 export {
-    login,
-    register,
-    logout,
-    getUserAuthentication,
-    sendFriendRequest,
-    getFriendRequests,
-    updateFriendRequest
+  login,
+  register,
+  logout,
+  getUserAuthentication,
+  sendFriendRequest,
+  getFriendRequests,
+  updateFriendRequest,
+  getFriends,
 };

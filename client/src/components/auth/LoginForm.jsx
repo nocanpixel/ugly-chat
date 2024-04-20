@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firstUpperCase } from '../../utils/shortCuts';
 import authApi from '../../api/auth';
 import { AuthSection, LayoutContainer, LayoutSection } from '../../styles';
-
 
 const data = [
   {
@@ -20,7 +19,7 @@ const data = [
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const [errors, setErrors] = useState({})
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -37,7 +36,7 @@ export default function LoginForm() {
         navigate('/')
       }
     } catch (error) {
-      console.error(error.response.data.error)
+      console.error(error)
     }
   }
 
@@ -45,6 +44,7 @@ export default function LoginForm() {
     event.preventDefault();
     fetchAuth();
   }
+
 
 
   return (

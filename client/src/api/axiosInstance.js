@@ -18,7 +18,8 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        if(error.response.status===401){
+        console.log(error)
+        if(error.response?.status===401){
             console.warn('Error : Token expired!')
             cookies.set(COOKIES_STATE.COOKIE_NAME,0,{secure:true});
         }

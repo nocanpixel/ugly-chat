@@ -2,20 +2,20 @@ import { ENUM, UUID, UUIDV4 } from "sequelize";
 import { db } from "../config/db-config.js";
 import Users from "./Users.js";
 
-const FriendRequests = db.define("Friend_requests", {
+const Friendship = db.define("Friendship", {
     id: {
         type: UUID,
         defaultValue: UUIDV4,
         primaryKey: true,
     },
-    from_user: {
+    user_1: {
         type: UUID,
         references: {
             model: Users,
             key: 'id'
         },
     },
-    to_user: {
+    user_2: {
         type: UUID,
         references: {
             model: Users,
@@ -28,4 +28,4 @@ const FriendRequests = db.define("Friend_requests", {
     }
 })
 
-export default FriendRequests;
+export default Friendship;

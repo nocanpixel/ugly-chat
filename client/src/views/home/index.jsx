@@ -1,8 +1,8 @@
 import React from 'react'
-import Chat from '../../components/chat/Chat'
+import ChatList from '../../components/chat/ChatList'
 
 export const Home = () => {
   return (
-    <Chat/>
+    <ChatList/>
   )
 }
