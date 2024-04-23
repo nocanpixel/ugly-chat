@@ -17,7 +17,6 @@ export const useChatList = create((set) => ({
   fetchData: async () => {
     try {
       const response = await chatApi.myChats();
-      console.log(response)
       set(response);
     } catch (error) {
       console.error(error);
@@ -25,10 +24,7 @@ export const useChatList = create((set) => ({
   },
   updateUseStatus: (userId, newStatus) => {
     set((state) => ({
-      data: state.data?.map(user =>  {
-        console.log(user)
-        return user.user_id === userId ? { ...user, is_online: newStatus } : user
-      })
+      data: state.data?.map(user =>   user.user_id === userId ? { ...user, is_online: newStatus } : user)
     }));
   },
 }));

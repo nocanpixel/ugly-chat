@@ -13,7 +13,6 @@
     "@floating-ui/react": "^0.26.12",
     "@react-spring/web": "^9.7.3",
     "axios": "^1.6.8",
-    "i": "^0.3.7",
     "npm": "^10.5.1",
     "react": "^18.2.0",
     "react-cookie": "^7.1.4",

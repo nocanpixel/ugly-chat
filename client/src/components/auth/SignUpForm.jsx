@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthSection, LayoutContainer, LayoutSection } from '../../styles';
 import { firstUpperCase } from '../../utils/shortCuts';
@@ -29,6 +29,7 @@ const data = [
 const SignUpForm = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const inputRef = useRef(null);
 
 
   const [formData, setFormData] = useState({
@@ -58,6 +59,10 @@ const SignUpForm = () => {
     fetchSignUp();
   }
 
+  useEffect(()=>{
+    inputRef.current?.focus();
+  },[])
+
 
   return (
     <LayoutSection>
@@ -80,7 +85,7 @@ const SignUpForm = () => {
               {data.map((ele, index) => (
                 <div key={index} className={`flex flex-col gap-2`}>
                   <label className='font-bold text-sm' htmlFor={ele.label}>{firstUpperCase(ele.name)}</label>
-                  <input onChange={handleChange} name={ele.name} placeholder={ele.name} className={`block w-full rounded-md border-0 py-2 px-4 pr-20 text-gray-900 ${error && getInputName(error) === ele.name ? 'ring-2 ring-rose-400' : 'ring-1 ring-neutral-100'} bg-neutral-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6`} type={ele.type} id={ele.name} />
+                  <input ref={index===0?inputRef:undefined} onChange={handleChange} name={ele.name} placeholder={ele.name} className={`block w-full rounded-md border-0 py-2 px-4 pr-20 text-gray-900 ${error && getInputName(error) === ele.name ? 'ring-2 ring-rose-400' : 'ring-1 ring-neutral-100'} bg-neutral-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6`} type={ele.type} id={ele.name} />
                 </div>
               ))}
             </div>

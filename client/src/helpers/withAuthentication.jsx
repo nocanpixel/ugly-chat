@@ -15,6 +15,9 @@ export const withAuthentication = (Component) => {
         const [cookies] = useCookies([COOKIE_NAME]) 
 
         useEffect(()=>{
+            if(cookies[COOKIE_NAME]===0){
+                navigate('/login')
+            }
             if ((cookies[COOKIE_NAME]===1 && !error) || isLoading) return;
             navigate('/login')
         },[user,error,isLoading,cookies[COOKIE_NAME]])

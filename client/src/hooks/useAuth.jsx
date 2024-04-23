@@ -1,23 +1,26 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import authApi from '../api/auth';
-import {useCookies} from 'react-cookie';
-import { socket } from '../socket';
+import { Cookie } from '../utils/tools';
 
 
 const COOKIE_NAME = import.meta.env.VITE_LOGGED_COOKIE;
+const cookie = new Cookie();
 
 export const useAuth = () => {
     const [state, setState] = useState({user:null,isLoading:true,is_online:false})
-    const [cookie, setCookies] = useCookies([COOKIE_NAME]);
-
     const checkSession = useCallback(async () => {
         try {
           const user = await authApi.getAuth();
           setState((previous) => ({ ...previous, user:user.data }));
-          setCookies(COOKIE_NAME,1,{secure:false});
+          if(user&&!cookie[COOKIE_NAME]){
+            cookie.authCookies(1);
+            setState((previous) => ({ ...previous, isLoading: false }));
+          }
         } catch (error) {
           setState((previous) => ({ ...previous, error: error }));
-          setCookies(COOKIE_NAME,0,{secure:false});
+          if(!cookie[COOKIE_NAME]){
+            cookie.authCookies(0);
+          }
         }
       }, []);
 
@@ -25,7 +28,6 @@ export const useAuth = () => {
           if(state.user)return;
           (async ()=>{
             await checkSession();
-            setState((previous) => ({ ...previous, isLoading: false }));
         })()
     },[state.user])
 

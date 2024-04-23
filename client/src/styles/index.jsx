@@ -62,9 +62,7 @@ export const MessageSection = styled.section`
   flex-direction: column;
 `;
 
-export const ChatBox = styled.section`
-
-`;
+export const ChatBox = styled.section``;
 
 export const InputSection = styled.div`
   height: auto;
@@ -76,27 +74,46 @@ export const InputSection = styled.div`
 `;
 
 export const InputChat = styled.span`
-  display: block;
+  display: flex;
+  height: fit-content;
+  background-color: white;
+  overflow: auto;
+  border-radius: 20px;
+  outline: none;
+  align-items: center;
+  color: #35334ebe;
+  max-height: 7em;
+  height: 100%;
+  white-space: normal;
+
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  -ms-word-break: break-all;
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+
+  /* display: block;
   max-width: 285px;
   align-items: center;
-  overflow: auto; /* Use 'auto' to allow vertical scrollbar if content overflows */
+  overflow: auto;
   background-color: white;
   border: 1px solid #ccc;
-  resize: none; /* Allow vertical resizing */
+  resize: none;
   border-radius: 20px;
   padding-top: 4px;
   padding-bottom: 4px;
   outline: none;
   max-height: 7em;
-  color: #35334ebe;
+  color: #35334ebe; */
 
   &:focus {
     box-shadow: var(--tw-ring-inset) 0 0 0
       calc(2px + var(--tw-ring-offset-width)) rgb(129 140 248);
-      
   }
 `;
-
 
 export const SenderDetail = styled.div`
   display: flex;
@@ -104,4 +121,4 @@ export const SenderDetail = styled.div`
   align-items: center;
   gap: 8px;
   height: 60px;
-`
+`;

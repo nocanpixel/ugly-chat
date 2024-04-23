@@ -15,11 +15,14 @@ import {
 } from "@heroicons/react/24/solid";
 import { withAuthentication } from "../helpers/withAuthentication";
 import usersApi from "../api/users";
-import MyToolTip from "../components/Tooltip";
+import MyToolTipButton from "../components/TooltipButton";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/Popover";
 import { useChatList } from "../store/store";
 import { SocketProvider } from "../context/SocketProvider";
+import { Cookie } from "../utils/tools";
+
+const cookie = new Cookie();
 
 const Layout = withAuthentication((props) => {
   const navigate = useNavigate();
@@ -32,17 +35,20 @@ const Layout = withAuthentication((props) => {
 
   const logout = async () => {
     try {
-      await usersApi.logout();
+      const response = await usersApi.logout();
+      if(response){
+        cookie.authCookies(0);
+      }
     } catch (error) {
       console.error("Error", error);
     }
   };
 
   useEffect(() => {
-    if (location.pathname === chatUrl && !data) {
+    if(location){
       fetchUser();
     }
-  }, []);
+  }, [location]);
 
   return (
     <LayoutSection>
@@ -55,9 +61,9 @@ const Layout = withAuthentication((props) => {
           ) : (
             <Popover crossAxis={100} placement="bottom">
               <PopoverTrigger>
-                <MyToolTip withTooltip={false}>
+                <MyToolTipButton withTooltip={false}>
                   <EllipsisHorizontalCircleIcon className="w-6" />
-                </MyToolTip>
+                </MyToolTipButton>
               </PopoverTrigger>
               <PopoverContent className="bg-white shadow-lg p-2 rounded-lg border border-gray-200 relative min-w-56">
                 <div
@@ -79,27 +85,28 @@ const Layout = withAuthentication((props) => {
                 className="flex text-white justify-center items-center rounded-full overflow-hidden shadow-xl w-8 h-8 relative ml-2"
               >
                 <span className="text-sm font-semibold">
-                  {data && data[0].username?.split("")[0]?.toUpperCase()}
+                  {data && data[0]?.username?.split("")[0]?.toUpperCase()}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold">
-                  {data && data[0].username}
+                  {data && data[0]?.username}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {data && data[0].is_online ? "Online" : ""}
+                  {data && data[0]?.is_online ? "Online" : ""}
                 </span>
               </div>
             </SenderDetail>
           )}
-          <MyToolTip
+          <MyToolTipButton
             withTooltip={true}
-            navigate={() => navigate("/friends-requests")}
+            withStyle={true}
+            onClick={() => currentLocation[0] !== location.pathname && navigate("/friends-requests")}
             content={"Friend request"}
             position={"left"}
           >
             <UsersIcon className="w-6" />
-          </MyToolTip>
+          </MyToolTipButton>
         </LayoutHeader>
         <LayoutBody>
           <SocketProvider>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firstUpperCase } from '../../utils/shortCuts';
 import authApi from '../../api/auth';
@@ -19,6 +19,7 @@ const data = [
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const inputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -33,6 +34,7 @@ export default function LoginForm() {
     try {
       const response = await authApi.login(formData);
       if (response) {
+        console.log(response)
         navigate('/')
       }
     } catch (error) {
@@ -44,6 +46,11 @@ export default function LoginForm() {
     event.preventDefault();
     fetchAuth();
   }
+
+  useEffect(()=>{
+    inputRef.current?.focus();
+  },[])
+
 
 
 
@@ -59,7 +66,7 @@ export default function LoginForm() {
               {data.map((ele, index) => (
                 <div key={index} className="flex flex-col gap-2">
                   <label className='font-bold text-sm' htmlFor={ele.name}>{firstUpperCase(ele.name)}</label>
-                  <input required onChange={handleChange} name={ele.name} placeholder={ele.name} className="block w-full rounded-md border-0 py-2 px-4 pr-20 text-gray-900 ring-1 ring-neutral-100 bg-neutral-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" type={ele.type} id={ele.name} />
+                  <input ref={index===0?inputRef:undefined} required onChange={handleChange} name={ele.name} placeholder={ele.name} className="block w-full rounded-md border-0 py-2 px-4 pr-20 text-gray-900 ring-1 ring-neutral-100 bg-neutral-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" type={ele.type} id={ele.name} />
                 </div>
               ))}
             </div>
