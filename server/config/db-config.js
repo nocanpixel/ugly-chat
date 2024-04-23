@@ -16,7 +16,7 @@ export const db = new Sequelize(
     DB, USER_DB, PASSWORD, {
     host: 'localhost',
     dialect: 'mysql',
-    logging: sql => logger.info(sql),
+    logging: false,
     // dialectOptions: {
     //     ssl: {
     //         rejectUnauthorized: false,

@@ -8,7 +8,7 @@ import UserFriendship from "../models/UserFriendship.js";
 import { enumsFriends } from "./userController.js";
 
 export const createRoom = async (req, res, next) => {
-  const { id } = req.user;
+  const id = req.session.user.id;
   const { target_user } = req.body;
 
   try {
@@ -55,7 +55,7 @@ export const createRoom = async (req, res, next) => {
       { returning: true }
     );
 
-    return res.status(201).json({ res: respond });
+    return res.status(201).json(respond);
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -64,9 +64,9 @@ export const createRoom = async (req, res, next) => {
 };
 
 export const chatList = async (req, res) => {
-  const { id } = req.user;
   
   try {
+    const id = req.session.user.id;
     const query = await UserFriendship.findAll({
       where: {
         user_id: { [Sequelize.Op.ne]: id },
@@ -165,57 +165,4 @@ export const getConversation = async (req, res) => {
   }
 
   return res.status(201).send(chatId);
-};
-
-export const sendMessage = async (req, res) => {
-  const { chatId, context } = req.body;
-  const { id } = req.user;
-
-  try {
-    const checkSubscription = await Subscribers.findOne({
-      where: { user_id: id, chat_id: chatId },
-    });
-
-    if (!checkSubscription)
-      return res.status(201).json({ message: "Subscription not found!" });
-
-    const send = await Messages.create({
-      from_user: id,
-      chat_id: chatId,
-      context: context,
-    });
-
-    if (send) {
-      await Subscribers.update(
-        { message_id: send.dataValues.id },
-        {
-          where: {
-            chat_id: chatId,
-            user_id: id,
-          },
-        }
-      );
-    }
-
-    const getLast = await Messages.findOne({
-      where:{id:send.dataValues.id},
-      attributes:['context','createdAt'],
-      include:[{
-        model:Users,
-        attributes:['username']
-      }]
-    })
-
-    const formatedData = {
-      userId: id,
-      username: getLast.User.dataValues.username,
-      context: getLast.dataValues.context,
-      createdAt: getLast.dataValues.createdAt,
-    }
-    res.status(201).json(formatedData);
-  } catch (error) {
-    res.status(500).json({
-      error: error,
-    });
-  }
 };

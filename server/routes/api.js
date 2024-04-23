@@ -7,8 +7,8 @@ import { chatRoutes } from "./chatRoutes.js";
 // router.use("/c", chatRoutes());
 // export default router;
 
-export const api = (io) => {
-  router.use("/user", userRoutes(io));
-  router.use("/c", chatRoutes());
+export const api = ({io, sqldb}) => {
+  router.use("/user", userRoutes({io,sqldb}));
+  router.use("/c", chatRoutes({io}));
   return router;
 };

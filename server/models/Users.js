@@ -15,6 +15,11 @@ const Users = db.define("Users", {
         unique: true,
         allowNull: false,
     },
+    tag: {
+        type: STRING,
+        unique: true,
+        allowNull: false,
+    },
     email: {
         type: STRING,
         allowNull: false,
