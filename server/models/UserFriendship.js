@@ -15,6 +15,7 @@ const UserFriendship = db.define("UserFriendship", {
             model: Friendship,
             key: 'id'
         },
+        unique:true,
     },
     user_id: {
         type: UUID,

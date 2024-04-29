@@ -1,4 +1,4 @@
-import { INTEGER, TEXT, UUID, UUIDV4 } from "sequelize";
+import { BOOLEAN, ENUM, INTEGER, TEXT, UUID, UUIDV4 } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
 import Users from "./Users.js";
 import Chats from "./Chats.js";
@@ -26,6 +26,14 @@ const Messages = db.define("Messages", {
     },
     context: {
         type: TEXT,
+        allowNull: false,
+    },
+    message_offset: {
+        type: BOOLEAN,
+        allowNull: false,
+    },
+    seen: {
+        type: BOOLEAN,
         allowNull: false,
     }
 })

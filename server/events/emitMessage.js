@@ -31,12 +31,13 @@ export function emitMessage({socket,sqldb}){
         }
 
         let message;
+        const userId = socket.userId;
 
         try{
             message = await sqldb.sendMessage(socket,payload.chat_id,payload.context);
         }catch(_){
             return callback({
-                status: "Error",
+                status: "Error - ",error:_
             })
         }
 
@@ -49,8 +50,24 @@ export function emitMessage({socket,sqldb}){
             return `Error ${_}`
         }
 
+        let chats;
+
+        try {
+            const res = await sqldb.getChatList(socket, payload.chat_id);
+            chats = res;
+        }catch(_){
+            return callback({
+                status:"Error",error:_
+            })
+        }
+
+
         socket.to(userRoom(target))
         .emit("message:sent", message);
+
+
+        socket.to(userRoom(target))
+        .emit("message:ack", chats);
 
         callback({
             status:"OK",

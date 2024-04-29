@@ -37,7 +37,7 @@ export const LayoutHeader = styled.div`
 
 export const LayoutBody = styled.div`
   height: 88vh;
-  padding: 0 12px 0px 12px;
+  padding: 0 0px 0px 0px;
 `;
 
 export const AuthSection = styled.section`

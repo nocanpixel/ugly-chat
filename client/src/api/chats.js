@@ -12,6 +12,12 @@ const chatApi = {
     },
     sendMessage: (content) => {
         return axiosInstance.post(`/c/send-message`, content, {withCredentials:true})
+    },
+    checkChat: (chatId) => {
+        return axiosInstance.post(`/c/check-chats`, chatId, {withCredentials:true});
+    },
+    userInChat: (chatId) => {
+        return axiosInstance.get(`/c/user-in-chat/${chatId}`, {withCredentials:true});
     }
 }
 

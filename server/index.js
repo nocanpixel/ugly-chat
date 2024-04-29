@@ -3,7 +3,6 @@ import chalk from 'chalk';
 import './associations.js'
 import createApp from './config/server-config.js';
 import { createServer } from 'node:http';
-import { generateIdentifier } from "./utils.js";
 
 
 const port = process.env.PORT || 3000;

@@ -2,7 +2,7 @@ import "mysql2";
 import { Sequelize } from "sequelize";
 const { PASSWORD, USER_DB, DB } = process.env;
 import pino from "pino";
-const logger = pino({
+export const logger = pino({
     transport: {
       target: 'pino-pretty',
       options: {

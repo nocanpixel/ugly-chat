@@ -4,6 +4,7 @@ import { AuthSection, LayoutContainer, LayoutSection } from '../../styles';
 import { firstUpperCase } from '../../utils/shortCuts';
 import authApi from '../../api/auth';
 import { getInputName } from '../../utils/getInputName';
+import { Cookie } from '../../utils/tools';
 
 const data = [
   {
@@ -25,6 +26,7 @@ const data = [
     type: 'password',
   }
 ]
+const cookie = new Cookie();
 
 const SignUpForm = () => {
   const navigate = useNavigate();
@@ -48,9 +50,9 @@ const SignUpForm = () => {
       const response = await authApi.register(formData);
       setError(response.data.error);
       if (response.data.error) return;
-      navigate('/')
+      cookie.authCookies(1);
     } catch (error) {
-      console.error(error.response.data.error)
+      console.error(error)
     }
   }
 
@@ -62,7 +64,6 @@ const SignUpForm = () => {
   useEffect(()=>{
     inputRef.current?.focus();
   },[])
-
 
   return (
     <LayoutSection>

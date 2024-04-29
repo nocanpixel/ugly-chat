@@ -6,6 +6,9 @@ import Friendship from "../models/Friendship.js";
 import { Sequelize } from "sequelize";
 import UserFriendship from "../models/UserFriendship.js";
 import { generateIdentifier, userRoom } from "../utils.js";
+import passport from "passport";
+import { logger } from "../config/db-config.js";
+import chalk from "chalk";
 
 const signupLimit = 100;
 const signupWindow = 60 * 60 * 1000;
@@ -21,11 +24,11 @@ function hasExceededLimit(ip) {
   return count >= signupLimit;
 }
 
-const createSession = async ({ userId, user, tag, req, res }) => {
+const createSession = async ({ userId, username, tag, req, res }) => {
   try {
-    if (!userId || !user || !tag)
-      return res.status(500).send("Something missing!");
-    req.session.user = { id: userId, name: user.username, tag: tag };
+
+    if (!userId || !username || !tag)return res.status(500).send("Something missing!");
+    req.user = { id: userId, name: username.username, tag: tag };
     res.status(200).json("Logged");
   } catch (error) {
     return { error: "Internal server error" };
@@ -52,8 +55,15 @@ const register = async (req, res) => {
     });
 
     if (!insertUser) throw new Error("Something went wrong");
-    const userId = insertUser.dataValues.id;
-    createSession({ userId, username, tag, req, res });
+
+    req.login(insertUser, (err)=>{
+      if (err) {
+        return next(err);
+      }
+      return res.status(201).json({ message: 'User registered successfully', user: insertUser });
+    })
+
+
   } catch (error) {
     res.status(500).json({
       error: "This account already exists",
@@ -73,7 +83,8 @@ const login = (io) => async (req, res) => {
     if (!validPassword) throw credentialsError;
     const userId = user.id;
     const tag = user.tag;
-    createSession({ userId, user, tag, req, res });
+    const username = user.username
+    createSession({ userId, username, tag, req, res });
   } catch (error) {
     res.status(400).json({
       error: error.message,
@@ -85,13 +96,13 @@ const logout =
   ({ io, sqldb }) =>
   async (req, res, next) => {
     try {
-      const id = req.session.user.id;
+      const id = req.user.id;
       req.session.destroy(async (err) => {
 
         if (err) {
           return next(err);
         }
-
+        res.clearCookie("sid");
         res.status(204).end();
       });
     } catch (error) {
@@ -103,17 +114,15 @@ const logout =
 
 const getUserAuthentication = async (req, res) => {
   try {
-    const userAuth = req.session.user;
-    if (userAuth) {
-      res.status(201).json({
-        status: res.statusCode,
-        res: {
-          id: userAuth.id,
-          name: userAuth.email,
-          tag: userAuth.tag,
-        },
-      });
-    }
+    const userAuth = req.user;
+    res.status(200).json({
+      status: res.statusCode,
+      res: {
+        id: userAuth.id,
+        name: userAuth.email,
+        tag: userAuth.tag,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -124,7 +133,7 @@ const getUserAuthentication = async (req, res) => {
 const sendFriendRequest = async (req, res) => {
   try {
     const { user_2 } = req.body;
-    const id = req.session.user.id;
+    const id = req.user.id;
     if (user_2 === id)
       return res
         .status(500)
@@ -156,7 +165,7 @@ const sendFriendRequest = async (req, res) => {
       { returning: true }
     );
 
-    return res.status(201).send(sendRequest);
+    return res.status(200).send(sendRequest);
   } catch (error) {
     return res.status(500).json({
       error: error.message,
@@ -166,7 +175,7 @@ const sendFriendRequest = async (req, res) => {
 
 const getFriendRequests = async (req, res) => {
   try {
-    const id = req.session.user.id;
+    const id = req.user.id;
     const myRequests = await UserFriendship.findAll({
       attributes: ["friendship_id"],
       where: {
@@ -225,7 +234,7 @@ const updateFriendRequest = async (req, res) => {
       where: { friendship_id: request_id },
     });
 
-    if (!findRequest) return res.status(201).send(`Friend request foundn't`);
+    if (!findRequest) return res.status(200).send(`Friend request foundn't`);
 
     const updateFriendship = await Friendship.update(
       { status: response },
@@ -245,7 +254,7 @@ const updateFriendRequest = async (req, res) => {
       });
     }
 
-    return res.status(201).send(`Friend request: ${response}`);
+    return res.status(200).send(`Friend request: ${response}`);
   } catch (error) {
     return res.status(500).json({
       error: error.message,
@@ -255,7 +264,7 @@ const updateFriendRequest = async (req, res) => {
 
 const getFriends = async (req, res) => {
   try {
-    const id = req.session.user.id;
+    const id = req.user.id;
     const myRequests = await UserFriendship.findAll({
       attributes: ["friendship_id"],
       where: {
@@ -286,13 +295,25 @@ const getFriends = async (req, res) => {
 
     const response = friends.map((ele) => ele.User.dataValues);
 
-    return res.status(201).json(response);
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({
       error: error.message,
     });
   }
 };
+
+
+export const  onSuccess  = (req,res) => {
+  logger.info(chalk.bgCyan(` ${req.user.username} has just logged in `))
+  res.status(200).send(req.user);
+}
+
+export const onError = (_err, _req, res, _next) => {
+  res.status(400).send({
+    message: "invalid credentials",
+  });
+}
 
 export {
   login,

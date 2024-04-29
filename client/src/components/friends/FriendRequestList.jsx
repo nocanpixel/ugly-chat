@@ -17,8 +17,8 @@ export const FriendRequestList = () => {
   const getFriendRequest = useCallback(async()=>{
     try{
       setIsLoading(true);
-      const responses = await usersApi.getFriendRequest();
-      setData(responses.data)
+      const response = await usersApi.getFriendRequest();
+      setData(response.data)
       setIsLoading(false);
     }catch(error){
       console.error(error);
@@ -57,13 +57,12 @@ export const FriendRequestList = () => {
 
 
   return (
-    <section className='flex flex-col gap-4 pt-12'>
+    <section className='flex flex-col gap-4 pt-12 px-3'>
       <header>
-        <h1 className='text-3xl font-bold p-2'>{'Friends requests'}</h1>
+        <h1 className='text-3xl font-bold py-2'>{'Friends requests'}</h1>
       </header>
       <div className="flex flex-col p-2 gap-4">
         <h2 className='font-bold text-sm'>Last 7 days</h2>
-
         {!isLoading ? (
           <>
             {data?.length > 0 ? data?.map((ele,index) => (

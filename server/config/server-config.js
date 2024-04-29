@@ -15,6 +15,9 @@ import Friendship from "../models/Friendship.js";
 import UserFriendship from "../models/UserFriendship.js";
 import Subscribers from "../models/Subscribers.js";
 import Messages from "../models/Messages.js";
+import passport from "passport";
+import { Strategy as JsonStrategy } from "passport-json";
+import bcrypt from "bcrypt";
 
 const _1_HOUR = 60 * 60 * 1000;
 
@@ -38,6 +41,7 @@ async function createApp(httpServer, config) {
   });
 
   setupSession({ app, io });
+  initPassport({ app, io, sqldb });
   initRoutes({ app, io, sqldb });
   initEventHandlers({ io, sqldb });
 }
@@ -72,8 +76,67 @@ function createExpressApp() {
   return app;
 }
 
+function initPassport({ app, io, sqldb }) {
+  passport.use(
+    new JsonStrategy(
+      {
+        usernameProp: "email",
+      },
+      async (email, password, done) => {
+        const user = await sqldb.findUserByEmail(email);
+
+        if (!user) {
+          return done(new Error("invalid credentials"));
+        }
+
+        const validPassword = await bcrypt.compare(password, user.password);
+
+        if (!validPassword) {
+          return done(new Error("invalid credentials"));
+        }
+
+        done(null, {
+          id: user.id,
+          username: user.username,
+          tag: user.tag,
+          is_online: user.is_online
+        });
+      }
+    )
+  );
+
+  passport.serializeUser((user, cb) => {
+    cb(null, { 
+      id: user.id, 
+      username: user.username,
+      tag: user.tag,
+      is_online: user.is_online,
+    });
+  });
+
+  passport.deserializeUser((user, cb) => {
+    cb(null, user);
+  });
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  io.engine.use(passport.initialize());
+  io.engine.use(passport.session());
+
+  io.engine.use((req, res, next) => {
+    if (req.user) {
+      next();
+    } else {
+      res.writeHead(401);
+      res.end();
+    }
+  });
+
+}
+
 function initRoutes({ app, io, sqldb }) {
-  app.use("/api", api({io,sqldb}));
+  app.use("/api", api({ io, sqldb }));
   app.use(handle404);
 
   return app;

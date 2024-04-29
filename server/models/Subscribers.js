@@ -12,27 +12,6 @@ const Subscribers = db.define("Subscribers", {
         primaryKey: true,
 
     },
-    user_id: {
-        type: UUID,
-        references: {
-            model: Users,
-            key: 'id'
-        }
-    },
-    chat_id: {
-        type: UUID,
-        references: {
-            model: Chats,
-            key: 'id'
-        }
-    },
-    message_id: {
-        type: UUID,
-        references: {
-            model: Messages,
-            key: 'id'
-        }
-    }
 })
 
 

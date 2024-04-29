@@ -4,12 +4,40 @@ import { Sequelize } from "sequelize";
 import Users from "../models/Users.js";
 import Friendship from "../models/Friendship.js";
 import Messages from "../models/Messages.js";
-import UserFriendship from "../models/UserFriendship.js";
-import { enumsFriends } from "./userController.js";
+import { messageDate } from "../utils.js";
+
+const findDuplicates = (arr) => {
+  return arr.reduce(
+    (acc, element) => {
+      if (acc[element]) {
+        acc.duplicates.push(element);
+      } else {
+        acc[element] = true;
+      }
+      return acc;
+    },
+    { duplicates: [] }
+  ).duplicates;
+};
 
 export const createRoom = async (req, res, next) => {
-  const id = req.session.user.id;
+  const id = req.user.id;
   const { target_user } = req.body;
+
+  const users = [id, target_user];
+
+  const checkIfRoomExists = await Subscribers.findAll({
+    where: {
+      user_id: { [Sequelize.Op.in]: users },
+    },
+    attributes: ["chat_id"],
+  });
+
+  const roomsArr = checkIfRoomExists.map((ele) => ele.dataValues.chat_id);
+
+  const exists = findDuplicates(roomsArr);
+
+  if (exists.length > 0) return res.status(200).send(exists);
 
   try {
     const checkFriendship = await Friendship.findOne({
@@ -23,25 +51,8 @@ export const createRoom = async (req, res, next) => {
 
     if (!checkFriendship)
       return res
-        .status(201)
+        .status(200)
         .send(`Can't initiate a chat without being friends first`);
-
-    const findChat = await Subscribers.findOne({
-      where: {
-        [Sequelize.Op.and]: [
-          {
-            [Sequelize.Op.or]: [{ user_id: id }, { user_id: target_user }],
-          },
-        ],
-        chat_id: Sequelize.literal(`
-            (SELECT chat_id FROM subscribers WHERE user_id = '${id}')
-            IN
-            (SELECT chat_id FROM subscribers WHERE user_id = '${target_user}')
-          `),
-      },
-    });
-
-    if (findChat) return res.status(201).send("This chat already exists");
 
     const create = await Chats.create();
 
@@ -52,10 +63,9 @@ export const createRoom = async (req, res, next) => {
         { user_id: id, chat_id: room_id },
         { user_id: target_user, chat_id: room_id },
       ],
-      { returning: true }
+      {returning:true}
     );
-
-    return res.status(201).json(respond);
+    return res.status(200).json(respond[0].dataValues.chat_id);
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -63,69 +73,101 @@ export const createRoom = async (req, res, next) => {
   }
 };
 
-export const chatList = async (req, res) => {
-  
+export const findChat = async (req, res) => {
   try {
-    const id = req.session.user.id;
-    const query = await UserFriendship.findAll({
+    const { chatId } = req.body;
+    const resp = await Chats.findOne({
       where: {
-        user_id: { [Sequelize.Op.ne]: id },
+        id: chatId,
       },
-      attributes: [],
-      include: [
-        {
-          model: Friendship,
-          where: { status: enumsFriends.accepted },
-          attributes: [],
-        },
-        {
-          model: Users,
-          attributes: ["username", "id"],
-        },
-      ],
     });
+    return res.status(200).send("Ok");
+  } catch (_) {
+    return res.status(500).send(_);
+  }
+};
 
-    const formatQuery = query.map((q) => q.dataValues.User.id);
+export const inChatUserDetails = async (req, res) => {
+  try {
+    const { _openChat } = req.user;
+    res.status(200).json(_openChat);
+  } catch (_) {
+    return { status: "ERROR", _ };
+  }
+};
 
-    const result = await Subscribers.findAll({
-      where: {
-        user_id: { [Sequelize.Op.in]: formatQuery },
-      },
-      attributes: ["chat_id"],
-      include: [
-        {
-          model: Users,
-          attributes: ["username", "is_online","id"],
-        },
-      ],
-    });
+export const chatList = async (req, res) => {
+  try {
+    const id = req.user.id;
 
-    const findUserInChat = await Subscribers.findOne({
+    const query = await Subscribers.findAll({
       where: {
         user_id: id,
       },
-      attributes: ["chat_id"],
+      attributes: ["chat_id"]
     });
 
-    if(!findUserInChat)return res.status(201).send([])
+    const allMyChats = query.map((chat) => chat.dataValues.chat_id);
 
-    const { chat_id } = findUserInChat.dataValues;
-
-    const getMessages = await Messages.findOne({
-      where: { chat_id: chat_id },
-      order: [["createdAt", "DESC"]],
+    const openChats = await Subscribers.findAll({
+      where: {
+        chat_id: { [Sequelize.Op.in]: allMyChats },
+        user_id: {[Sequelize.Op.ne]: id}
+      },
+      include: [
+        {
+          model: Users,
+          attributes: ["id", "username"],
+        },
+        {
+          model: Messages,
+          attributes: {
+            include: [
+              //[Sequelize.fn("COUNT", Sequelize.literal("CASE WHEN message_offset = 1 THEN 1 ELSE NULL END")), "n_message_offset"],
+              [
+                Sequelize.literal(
+                  `(SELECT COUNT(*) FROM Messages WHERE Messages.message_offset = 1 AND Messages.from_user = User.id)`
+                ),
+                "n_message_offset",
+              ],
+            "id","from_user"],
+          },
+        },
+      ],
     });
 
+    const formatResults = openChats.map((r) => {
+      const lastMessage = r.dataValues.Message;
+      const user = r.dataValues.User.dataValues;
 
-    const formatResult = result.map((r) => ({
-      user_id: r.dataValues.User.id,
-      chat_id: r.dataValues.chat_id,
-      username: r.dataValues.User.username,
-      context: getMessages?.dataValues.context||false,
-      is_online: r.dataValues.User.is_online,
-    }));
+      if (!lastMessage) {
+        return {
+          id:false,
+          user_id: user.id,
+          chat_id: r.dataValues.chat_id,
+          username: user.username,
+          context: false,
+          from_user:false,
+          time: false,
+          n_message_offset: false,
+          seen: false,
+        };
+      }
 
-    return res.status(201).send(formatResult);
+      return {
+        id: lastMessage.dataValues.id,
+        user_id: user.id,
+        chat_id: r.dataValues.chat_id,
+        username: user.username,
+        from_user: lastMessage.dataValues.from_user,
+        context: lastMessage.dataValues.context,
+        time: messageDate(lastMessage.dataValues.createdAt),
+        n_message_offset: lastMessage.dataValues.n_message_offset,
+        seen: lastMessage.dataValues.seen,
+      };
+    });
+
+    return res.status(200).send(formatResults);
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -135,12 +177,13 @@ export const chatList = async (req, res) => {
 
 export const getConversation = async (req, res) => {
   const { chatId } = req.params;
+  const id = req.user.id;
 
   try {
     const query = await Messages.findAll({
       where: { chat_id: chatId },
-      attributes: ["context","createdAt"],
-      order:[["createdAt","ASC"]],
+      attributes: ["context", "createdAt","seen","id"],
+      order: [["createdAt", "ASC"]],
       include: [
         {
           model: Users,
@@ -149,20 +192,20 @@ export const getConversation = async (req, res) => {
       ],
     });
 
-    const formatQuery = query.map(element=> ({
+    const formatQuery = query.map((element) => ({
+      id: element.dataValues.id,
       userId: element.User.dataValues.id,
-      username: element.User.dataValues.username,
-      isOnline: element.User.dataValues.is_online,
       context: element.dataValues.context,
+      seen: element.dataValues.seen,
       createdAt: element.dataValues.createdAt,
-    }))
+    }));
 
-    return res.status(201).send(formatQuery);
+    return res.status(200).send(formatQuery);
   } catch (error) {
     res.status(500).json({
       error: error.message,
     });
   }
 
-  return res.status(201).send(chatId);
+  return res.status(200).send(chatId);
 };

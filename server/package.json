@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch --env-file ../.env.dev index.js",
+    "dev": "node --watch --env-file /.env.dev index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -30,8 +30,11 @@
     "joi": "^17.12.3",
     "jsonwebtoken": "^9.0.0",
     "memory-cache": "^0.2.0",
+    "moment": "^2.30.1",
     "morgan": "^1.10.0",
     "mysql2": "^3.1.0",
+    "passport": "^0.7.0",
+    "passport-json": "^1.2.0",
     "pino": "^8.20.0",
     "pino-pretty": "^11.0.0",
     "sequelize": "^6.37.2",

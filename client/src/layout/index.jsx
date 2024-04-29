@@ -18,9 +18,11 @@ import usersApi from "../api/users";
 import MyToolTipButton from "../components/TooltipButton";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/Popover";
-import { useChatList } from "../store/store";
 import { SocketProvider } from "../context/SocketProvider";
 import { Cookie } from "../utils/tools";
+import chatApi from "../api/chats";
+import { useFriendRequestStatus, useUserInChat } from "../store/store";
+import { useSocket } from "../hooks/useSocket";
 
 const cookie = new Cookie();
 
@@ -30,24 +32,56 @@ const Layout = withAuthentication((props) => {
   const { chatId } = useParams();
   const currentLocation = ["/friends-requests", `/c/${chatId}`];
   const chatUrl = `/c/${chatId}`;
-  const data = useChatList((state) => state.data);
-  const fetchUser = useChatList((state) => state.fetchData);
+  const userInChat = useUserInChat((state) => state.data);
+  const fetchUserInChat = useUserInChat((state) => state.fetchData);
+  const updateUserStatus = useUserInChat((state) => state.updateUserStatus);
+  const fetchFriendRequests = useFriendRequestStatus(
+    (state) => state.fetchData
+  );
+  const updateFriendRequestStatus = useFriendRequestStatus((state)=> state.updateStatus);
+  const dataFriendRequests = useFriendRequestStatus((state) => state.data);
+  const socket = useSocket();
 
   const logout = async () => {
     try {
       const response = await usersApi.logout();
-      if(response){
-        cookie.authCookies(0);
-      }
+      cookie.authCookies(0);
     } catch (error) {
       console.error("Error", error);
     }
   };
 
-  useEffect(() => {
-    if(location){
-      fetchUser();
+  const handleNavigation = () => {
+    if (userInChat) {
+      updateUserStatus(null);
     }
+    return navigate(-1);
+  };
+
+  useEffect(() => {
+    if(location.pathname===currentLocation[0]){
+      updateFriendRequestStatus(false);
+    }else{
+      fetchFriendRequests();
+    }
+  }, [location]);
+
+  useEffect(()=>{
+    function updateFriendStatus(data){
+      updateFriendRequestStatus(data)
+    }
+    socket.on("friend:request", updateFriendStatus);
+    return ( ) => {
+      socket.off("friend:request", updateFriendStatus);
+    }
+  },[])
+
+  useEffect(() => {
+    (async () => {
+      if (location.pathname === chatUrl) {
+        fetchUserInChat(chatId);
+      }
+    })();
   }, [location]);
 
   return (
@@ -55,7 +89,7 @@ const Layout = withAuthentication((props) => {
       <LayoutContainer className="relative">
         <LayoutHeader>
           {currentLocation.includes(location.pathname) ? (
-            <div onClick={() => navigate(-1)} className="cursor-pointer">
+            <div onClick={() => handleNavigation()} className="cursor-pointer">
               <ArrowLeftIcon className="w-6 fill-indigo-400" />
             </div>
           ) : (
@@ -85,15 +119,16 @@ const Layout = withAuthentication((props) => {
                 className="flex text-white justify-center items-center rounded-full overflow-hidden shadow-xl w-8 h-8 relative ml-2"
               >
                 <span className="text-sm font-semibold">
-                  {data && data[0]?.username?.split("")[0]?.toUpperCase()}
+                  {userInChat &&
+                    userInChat?.username?.split("")[0]?.toUpperCase()}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-semibold">
-                  {data && data[0]?.username}
+                  {userInChat && userInChat?.username}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {data && data[0]?.is_online ? "Online" : ""}
+                  {userInChat && userInChat?.is_online ? "Online" : ""}
                 </span>
               </div>
             </SenderDetail>
@@ -101,11 +136,17 @@ const Layout = withAuthentication((props) => {
           <MyToolTipButton
             withTooltip={true}
             withStyle={true}
-            onClick={() => currentLocation[0] !== location.pathname && navigate("/friends-requests")}
+            onClick={() =>
+              currentLocation[0] !== location.pathname &&
+              navigate("/friends-requests")
+            }
             content={"Friend request"}
             position={"left"}
           >
-            <UsersIcon className="w-6" />
+            <div className="relative">
+              {dataFriendRequests && <span className="w-2 h-2 bg-rose-400 absolute right-0 -top-[1px] rounded-full border border-white" />}
+              <UsersIcon className="w-6" />
+            </div>
           </MyToolTipButton>
         </LayoutHeader>
         <LayoutBody>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { firstUpperCase } from '../../utils/shortCuts';
 import authApi from '../../api/auth';
 import { AuthSection, LayoutContainer, LayoutSection } from '../../styles';
+import { Cookie } from '../../utils/tools';
 
 const data = [
   {
@@ -17,6 +18,7 @@ const data = [
   }
 ]
 
+const cookie = new Cookie();
 export default function LoginForm() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
@@ -34,8 +36,7 @@ export default function LoginForm() {
     try {
       const response = await authApi.login(formData);
       if (response) {
-        console.log(response)
-        navigate('/')
+        cookie.authCookies(1);
       }
     } catch (error) {
       console.error(error)
