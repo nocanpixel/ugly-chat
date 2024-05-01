@@ -8,7 +8,7 @@ import argon2 from "argon2";
 import { logger } from "../config/db-config.js";
 import chalk from "chalk";
 
-const signupLimit = 100;
+const signupLimit = 2;
 const signupWindow = 60 * 60 * 1000;
 
 export const enumsFriends = {
