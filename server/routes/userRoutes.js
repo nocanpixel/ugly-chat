@@ -1,7 +1,6 @@
 import express from "express";
 const router = express.Router();
 import {
-  login,
   register,
   logout,
   getUserAuthentication,
@@ -18,7 +17,6 @@ import passport from "passport";
 
 
   export const userRoutes =({io,sqldb})=>{
-    //router.post("/login", login({io,sqldb}));
     router.post('/login', passport.authenticate("json"), onSuccess, onError);
     router.post("/register", validateCredentials, register);
     router.post("/logout", logout({io,sqldb}));

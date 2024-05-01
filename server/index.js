@@ -4,7 +4,6 @@ import './associations.js'
 import createApp from './config/server-config.js';
 import { createServer } from 'node:http';
 
-
 const port = process.env.PORT || 3000;
 
 
@@ -12,7 +11,7 @@ const httpServer = createServer();
 
 await createApp(httpServer,{
     cors: {
-        origin: ["http://localhost:5173"],
+        origin: ["http://localhost:8080"],
         credentials: true,
     },
 })

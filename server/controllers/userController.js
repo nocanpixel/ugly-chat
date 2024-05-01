@@ -1,12 +1,10 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import Users from "../models/Users.js";
 import memoryCache from "memory-cache";
 import Friendship from "../models/Friendship.js";
 import { Sequelize } from "sequelize";
 import UserFriendship from "../models/UserFriendship.js";
-import { generateIdentifier, userRoom } from "../utils.js";
-import passport from "passport";
+import { generateIdentifier } from "../utils.js";
+import argon2 from "argon2";
 import { logger } from "../config/db-config.js";
 import chalk from "chalk";
 
@@ -24,16 +22,16 @@ function hasExceededLimit(ip) {
   return count >= signupLimit;
 }
 
-const createSession = async ({ userId, username, tag, req, res }) => {
-  try {
+// const createSession = async ({ userId, username, tag, req, res }) => {
+//   try {
 
-    if (!userId || !username || !tag)return res.status(500).send("Something missing!");
-    req.user = { id: userId, name: username.username, tag: tag };
-    res.status(200).json("Logged");
-  } catch (error) {
-    return { error: "Internal server error" };
-  }
-};
+//     if (!userId || !username || !tag)return res.status(500).send("Something missing!");
+//     req.user = { id: userId, name: username.username, tag: tag };
+//     res.status(200).json("Logged");
+//   } catch (error) {
+//     return { error: "Internal server error" };
+//   }
+// };
 
 const register = async (req, res) => {
   try {
@@ -43,7 +41,7 @@ const register = async (req, res) => {
     }
     memoryCache.put(ip, (memoryCache.get(ip) || 0) + 1, signupWindow);
     const { username, email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await argon2.hash(password);
     const tag = generateIdentifier(username, email);
 
     const insertUser = await Users.create({
@@ -71,26 +69,26 @@ const register = async (req, res) => {
   }
 };
 
-const login = (io) => async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const userAuth = req.cookies.auth;
+// const login = (io) => async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     const userAuth = req.cookies.auth;
 
-    if (userAuth) return res.status(200).send("Already logged In");
-    const user = await Users.findOne({ where: { email } });
-    if (!user) throw new Error("Email or password is incorrect");
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) throw credentialsError;
-    const userId = user.id;
-    const tag = user.tag;
-    const username = user.username
-    createSession({ userId, username, tag, req, res });
-  } catch (error) {
-    res.status(400).json({
-      error: error.message,
-    });
-  }
-};
+//     if (userAuth) return res.status(200).send("Already logged In");
+//     const user = await Users.findOne({ where: { email } });
+//     if (!user) throw new Error("Email or password is incorrect");
+//     const validPassword = await bcrypt.compare(password, user.password);
+//     if (!validPassword) throw credentialsError;
+//     const userId = user.id;
+//     const tag = user.tag;
+//     const username = user.username
+//     createSession({ userId, username, tag, req, res });
+//   } catch (error) {
+//     res.status(400).json({
+//       error: error.message,
+//     });
+//   }
+// };
 
 const logout =
   ({ io, sqldb }) =>
@@ -316,7 +314,6 @@ export const onError = (_err, _req, res, _next) => {
 }
 
 export {
-  login,
   register,
   logout,
   getUserAuthentication,

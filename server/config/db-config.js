@@ -1,6 +1,6 @@
 import "mysql2";
 import { Sequelize } from "sequelize";
-const { PASSWORD, USER_DB, DB } = process.env;
+const { PASSWORD, USER_DB, DB, HOST } = process.env;
 import pino from "pino";
 export const logger = pino({
     transport: {
@@ -14,7 +14,7 @@ export const logger = pino({
 
 export const db = new Sequelize(
     DB, USER_DB, PASSWORD, {
-    host: 'localhost',
+    host: HOST,
     dialect: 'mysql',
     logging: false,
     // dialectOptions: {

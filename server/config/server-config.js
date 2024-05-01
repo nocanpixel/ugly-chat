@@ -17,7 +17,8 @@ import Subscribers from "../models/Subscribers.js";
 import Messages from "../models/Messages.js";
 import passport from "passport";
 import { Strategy as JsonStrategy } from "passport-json";
-import bcrypt from "bcrypt";
+import argon2 from "argon2";
+
 
 const _1_HOUR = 60 * 60 * 1000;
 
@@ -89,7 +90,7 @@ function initPassport({ app, io, sqldb }) {
           return done(new Error("invalid credentials"));
         }
 
-        const validPassword = await bcrypt.compare(password, user.password);
+        const validPassword = await argon2.verify(user.password, password);
 
         if (!validPassword) {
           return done(new Error("invalid credentials"));
@@ -99,15 +100,15 @@ function initPassport({ app, io, sqldb }) {
           id: user.id,
           username: user.username,
           tag: user.tag,
-          is_online: user.is_online
+          is_online: user.is_online,
         });
       }
     )
   );
 
   passport.serializeUser((user, cb) => {
-    cb(null, { 
-      id: user.id, 
+    cb(null, {
+      id: user.id,
       username: user.username,
       tag: user.tag,
       is_online: user.is_online,
@@ -132,7 +133,6 @@ function initPassport({ app, io, sqldb }) {
       res.end();
     }
   });
-
 }
 
 function initRoutes({ app, io, sqldb }) {

@@ -1,17 +1,16 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect } from "react";
 import { io } from "socket.io-client";
 import { useChatList, useUserInChat } from "../store/store";
 
-const URL =
-  process.env.NODE_ENV === "production" ? undefined : "http://localhost:3000";
 
-export const socket = new io(URL, {
+
+export const socket = new io("http://localhost:3000", {
   autoConnect:false,
   withCredentials: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  // reconnectionDelayMax: 5000,
-  randomizationFactor: 0.5
+  randomizationFactor: 0.5,
+  path:'/socket.io/'
 });
 
 export const SocketContext = createContext(socket);
