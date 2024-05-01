@@ -1,6 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ENV VITE_API_URL=http://35.156.145.200:3000/api
+ENV VITE_LOGGED_COOKIE=pedal-cache-logged-in
+ENV VITE_CLIENT_ERRORS=errors
+
 COPY ./package.json ./
 RUN npm install
 
