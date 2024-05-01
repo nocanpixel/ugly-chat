@@ -11,7 +11,7 @@ const httpServer = createServer();
 
 await createApp(httpServer,{
     cors: {
-        origin: ["http://35.156.145.200:8080"],
+        origin: ["http://18.156.174.143:8080"],
         credentials: true,
     },
 })

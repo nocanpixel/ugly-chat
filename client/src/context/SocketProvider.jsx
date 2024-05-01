@@ -4,7 +4,7 @@ import { useChatList, useUserInChat } from "../store/store";
 
 
 
-export const socket = new io("http://35.156.145.200:3000", {
+export const socket = new io("http://18.156.174.143:3000", {
   autoConnect:false,
   withCredentials: true,
   reconnectionAttempts: 5,
