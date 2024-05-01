@@ -4,6 +4,7 @@ WORKDIR /app
 ENV VITE_API_URL=http://18.156.174.143/api
 ENV VITE_LOGGED_COOKIE=pedal-cache-logged-in
 ENV VITE_CLIENT_ERRORS=errors
+ENV VITE_SOCKET_SERVER=http://18.156.174.143
 
 COPY ./package.json ./
 RUN npm install

@@ -8,8 +8,6 @@ const _COOKIE_CLIENT_ERRORS = import.meta.env.VITE_CLIENT_ERRORS;
 export const Login = () => {
   const navigate = useNavigate();
   const [cookies] = useCookies([COOKIE_NAME]);
-
-  console.log(import.meta.env.VITE_API_URL)
   
   useEffect(()=>{
     if(cookies[COOKIE_NAME]===1){
