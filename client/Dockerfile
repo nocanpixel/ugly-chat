@@ -1,26 +1,20 @@
 FROM node:20-alpine AS builder
-WORKDIR /app
 
+WORKDIR /app
 ENV VITE_API_URL=http://18.196.221.150:3000/api
 ENV VITE_LOGGED_COOKIE=pedal-cache-logged-in
 ENV VITE_CLIENT_ERRORS=errors
 ENV VITE_SOCKET_SERVER=http://18.196.221.150:3000
 
-COPY ./package.json ./
+COPY package.json .
 RUN npm install
 
 COPY . .
+
 RUN npm run build
 
-FROM node:20-alpine as production
-
-WORKDIR /app
-
 EXPOSE 8080
-COPY --from=builder /app/dist /app/dist
 
-COPY ./package.json ./
-COPY ./vite.config.ts ./
 CMD ["npm","run","preview"]
 
 # FROM nginx
