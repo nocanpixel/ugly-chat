@@ -12,6 +12,14 @@ RUN npm install
 COPY . .
 RUN npm run build
 
+FROM node:20-alpine as production
+
+WORKDIR /app
+
+EXPOSE 8080
+COPY --from=builder /app/dist /app/dist
+CMD ["npm","run","preview"]
+
 # FROM nginx
 
 # EXPOSE 8080
