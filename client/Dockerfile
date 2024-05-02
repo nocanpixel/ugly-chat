@@ -18,6 +18,9 @@ WORKDIR /app
 
 EXPOSE 8080
 COPY --from=builder /app/dist /app/dist
+
+COPY ./package.json ./
+COPY ./vite.config.ts ./
 CMD ["npm","run","preview"]
 
 # FROM nginx
