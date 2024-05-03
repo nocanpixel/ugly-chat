@@ -1,9 +1,9 @@
 FROM node:20-alpine AS builder
 
-ENV VITE_API_URL=http://18.196.221.150:3000/api
+ENV VITE_API_URL=https://lotshat.com/api
 ENV VITE_LOGGED_COOKIE=pedal-cache-logged-in
 ENV VITE_CLIENT_ERRORS=errors
-ENV VITE_SOCKET_SERVER=http://18.196.221.150:3000
+ENV VITE_SOCKET_SERVER=https://lotshat.com
 
 WORKDIR /app
 

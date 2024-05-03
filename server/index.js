@@ -5,13 +5,14 @@ import createApp from './config/server-config.js';
 import { createServer } from 'node:http';
 
 const port = process.env.PORT || 3000;
-const _ORIGIN_URL = process.env.ORIGIN_URL;
+
+const { _ORIGIN_URL, WWW_ORIGIN_URL } = process.env;
 
 const httpServer = createServer();
 
 await createApp(httpServer,{
     cors: {
-        origin: [_ORIGIN_URL],
+        origin: [_ORIGIN_URL,WWW_ORIGIN_URL],
         credentials: true,
     },
 })
